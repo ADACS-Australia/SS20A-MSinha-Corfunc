@@ -1,0 +1,125 @@
+
+# OpenCL Implementation of Distance Histogram Computation
+
+### Author: Matt Smith, ADACS, Swinburne University of Technology
+
+## Using OpenCL Correlation
+
+Add the header to your C++ code:
+
+/#include "computeCL.h"
+
+and use the CorrelateOpenCL() function to complete the correlation computation using OpenCL. The OpenCL correlation function is called in-code using the function:
+
+int CorrelateOpenCL(double *xpos, double *ypos, double *zpos, double *rupp, double **rpavg, double **rpavg_approx, long **npairs, 
+					double rmin, double rmax, int Npart, int nbins, double precision, int debug);
+
+Where the arguments are outlined below:
+
+* xpos, ypos, zpos: Particle locations; These are one dimensional arrays of doubles containing Npart elements.
+* rupp: Correlation bin values; A one dimensional array holding nbins doubles.
+* rmin, rmax: Cutoff radius values; These are both doubles.
+* Npart: The number of particles to correlate; This is an integer.
+* nbins: The number of bins used for correlation.
+* precision: The correlation function employs two methods; a precise method and an approximate method. The value provided here
+  roughly correlates to the number of decimal points required for the computed pair-wise average distance values in each bin.
+  For example, if precision is 100.0, then expect the pair-wise distance average to be accurate to 2 decimal places.
+  To use the precise method (which is much slower), use precision = -1.0.
+* debug: An integer, use debug = 1 for complete details of the logs to be printed. Useful if the program is malfunctioning,
+  the logs will help you identify which part of the code is failing.
+
+The correlation function will provide the following results:
+
+* rpavg: A one dimensional array of doubles containing the pair-wise average distance between particles in any given bin. This 
+is the precise value computed using precision = -1.0; if the precision is not -1.0, these values will be 0.
+* rpavg_approx: An approximate version of rpavg. If precision = -1.0, these values will be 0.
+* npairs: A one dimensional array of longs (i.e. big integers); it contains the number of particles in each bin.
+
+The user (you) will be responsible for freeing memory allocated for rpavg, rpavg_approx and npairs using free().
+
+## Example:
+
+The complete example is shown in main.cpp - this is reviewed here for completeness:
+
+	// ==============================================================================================
+	// ===========================   Main demonstration section =====================================
+	double precision = 1000.0; 
+	int debug = 1;
+	// Computed Results
+	double *rpavg;
+	double *rpavg_approx;
+	long *npairs;
+	int error = CorrelateOpenCL(xpos, ypos, zpos, rupp, &rpavg, &rpavg_approx, &npairs, rmin, rmax, (int)Npart, (int)nbins, precision, debug);
+	printf("Executed Command Queue using OpenCL: Error Code = %d\n", error);
+	// ==============================================================================================
+	// ==============================================================================================
+
+## Running the example:
+
+Change directories to where the run.sh file is located. Type "sh run.sh" and press enter (without the quotation marks).
+This will clean any previously built codes, build a new program (test.run) and run it using the particle data contained
+within the gals_Mr19_100k.txt file and the bin data held within the bins file.
+
+## Expected Output:
+
+The output expected from the code provided as-is when run using the run.sh script is shown below:
+
+rm *.o
+rm test.run
+nvcc -O2 -lOpenCL computeCL.cpp -c
+g++ -O2 -g -Wall -Wextra tools.cpp -c
+g++ -O2 -g -Wall -Wextra main.cpp -c
+nvcc -O2 -lOpenCL computeCL.o tools.o main.o -o test.run
+INFO:    Running OpenCL wrapper function
+INFO:    (STATUS) Detected 1 OpenCL platforms
+INFO:    (STATUS) Detected on platform 0: NVIDIA CUDA
+INFO:    (SUCCESS) Selected OpenCL GPU device
+INFO:    (SUCCESS) Selected device: Tesla P100-PCIE-12GB
+INFO:    (SUCCESS) Created the OpenCL context
+INFO:    (SUCCESS) Created the OpenCL command queue
+INFO:    (SUCCESS) Allocated OpenCL memory
+INFO:    (SUCCESS) Compiled kernel from source
+INFO:    (SUCCESS) Built OpenGL Program
+INFO:    (SUCCESS) Created OpenCL kernel
+INFO:    (SUCCESS) Copied data to the GPU
+INFO:    (SUCCESS) Processed kernel arguments
+INFO:    (SUCCESS) Prepared kernel with 64 threads and 100032 work items
+INFO:    (SUCCESS) Executed OpenCL command queue
+INFO:    (SUCCESS) Completed OpenCL command queue
+INFO:    (SUCCESS) Copied data from the GPU
+INFO:    (SUCCESS) Freed OpenCL memory
+INFO:    (SUCCESS) Freed OpenCL queue and context
+INFO:    OpenCL wrapper function finished
+Executed Command Queue using OpenCL: Error Code = 0
+0.1     0.1247   rpavg[1] = 0, rpavg_app[1] = 0.111372, npairs[1] = 646
+0.1247  0.1555   rpavg[2] = 0, rpavg_app[2] = 0.13945, npairs[2] = 876
+0.1555  0.194    rpavg[3] = 0, rpavg_app[3] = 0.174697, npairs[3] = 1068
+0.194   0.2419   rpavg[4] = 0, rpavg_app[4] = 0.21637, npairs[4] = 1436
+0.2419  0.3017   rpavg[5] = 0, rpavg_app[5] = 0.27156, npairs[5] = 1772
+0.3017  0.3763   rpavg[6] = 0, rpavg_app[6] = 0.337429, npairs[6] = 2504
+0.3763  0.4693   rpavg[7] = 0, rpavg_app[7] = 0.422994, npairs[7] = 3222
+0.4693  0.5852   rpavg[8] = 0, rpavg_app[8] = 0.526927, npairs[8] = 4246
+0.5852  0.7299   rpavg[9] = 0, rpavg_app[9] = 0.657757, npairs[9] = 5352
+0.7299  0.9103   rpavg[10] = 0, rpavg_app[10] = 0.820054, npairs[10] = 7036
+0.9103  1.135    rpavg[11] = 0, rpavg_app[11] = 1.01979, npairs[11] = 8768
+1.135   1.416    rpavg[12] = 0, rpavg_app[12] = 1.27341, npairs[12] = 10716
+1.416   1.766    rpavg[13] = 0, rpavg_app[13] = 1.59356, npairs[13] = 13304
+1.766   2.202    rpavg[14] = 0, rpavg_app[14] = 1.98452, npairs[14] = 17404
+2.202   2.746    rpavg[15] = 0, rpavg_app[15] = 2.47973, npairs[15] = 24646
+2.746   3.425    rpavg[16] = 0, rpavg_app[16] = 3.09682, npairs[16] = 35292
+3.425   4.272    rpavg[17] = 0, rpavg_app[17] = 3.86675, npairs[17] = 54400
+4.272   5.327    rpavg[18] = 0, rpavg_app[18] = 4.82011, npairs[18] = 87658
+5.327   6.644    rpavg[19] = 0, rpavg_app[19] = 6.01674, npairs[19] = 144130
+6.644   8.286    rpavg[20] = 0, rpavg_app[20] = 7.50806, npairs[20] = 240800
+8.286   10.33    rpavg[21] = 0, rpavg_app[21] = 9.36547, npairs[21] = 414624
+10.33   12.89    rpavg[22] = 0, rpavg_app[22] = 11.6858, npairs[22] = 731622
+12.89   16.07    rpavg[23] = 0, rpavg_app[23] = 14.572, npairs[23] = 1293140
+16.07   20.05    rpavg[24] = 0, rpavg_app[24] = 18.182, npairs[24] = 2329820
+20.05   25       rpavg[25] = 0, rpavg_app[25] = 22.6816, npairs[25] = 4234258
+Time = 0.386474 seconds
+
+
+
+
+
+
